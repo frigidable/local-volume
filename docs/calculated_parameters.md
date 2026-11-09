@@ -3,8 +3,19 @@
 The API exposes a separate derived list in the galaxy detail response; the
 frontend renders it below the catalog parameter table.
 
-The distance modulus is calculated from the adopted distance (PR #8) using
-the function in the Ks luminosity module (PR #6).
+The distance modulus (m-M) is source-native for records with
+basis="modulus" in the LV SAO importer. The importer already converts
+that modulus to distance via D[Mpc] = 10 ** ((mu - 25) / 5), while the
+current PR #8 schema stores only dist. Therefore the original modulus
+and provenance require a separate modeling correction before full ingestion.
+Neither mu nor dist is reintroduced in the calculated-parameters panel.
+
+For calculations such as Ks luminosity that require mu, the domain API
+accepts a source modulus explicitly. Until the source modulus is stored,
+the numerical inverse of an adopted distance may be used only as an
+internal algebraic conversion; it is not an independent measurement or
+a new derived catalog parameter. Rows whose basis is "distance_only"
+retain the directly supplied distance without inventing a measured mu.
 
 The other formulas are wired but their inputs are deliberately not guessed.
 The current summary schema does not expose a validated numerical morphology

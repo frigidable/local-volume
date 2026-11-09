@@ -59,6 +59,7 @@ def _numeric(item: CalculatedParameter) -> float | None:
 def calculate(
     *,
     distance_mpc: float | None,
+    distance_modulus: float | None = None,
     b_magnitude: float | None = None,
     morphological_t: float | None = None,
     axis_ratio: float | None = None,
@@ -68,11 +69,14 @@ def calculate(
     neighbors: Sequence[tuple[str, float, float]] | None = None,
     neighbors_complete: bool = False,
 ) -> list[CalculatedParameter]:
-    modulus = _number(
-        "mu", "Distance modulus", "mag", {"distance (Mpc)": distance_mpc},
-        lambda: ks_luminosity.distance_modulus_from_mpc(_required(distance_mpc)),
-        "5 log10(dist / Mpc) + 25",
-    )
+    # Numerical distance-modulus conversion for the luminosity formula only.
+    # This is not a catalog measurement and must not be returned as a derived parameter.
+    if distance_modulus is not None:
+        luminosity_modulus = distance_modulus if isfinite(distance_modulus) else None
+    elif distance_mpc is not None and isfinite(distance_mpc) and distance_mpc > 0:
+        luminosity_modulus = ks_luminosity.distance_modulus_from_mpc(distance_mpc)
+    else:
+        luminosity_modulus = None
     color = _number(
         "b_minus_ks_0", "Intrinsic B−Ks colour", "mag", {"morphological T": morphological_t},
         lambda: ks_luminosity.intrinsic_b_minus_ks(_required(morphological_t)),
@@ -104,13 +108,13 @@ def calculate(
     log_lk = _number(
         "log_lk", "Ks luminosity", "dex(L☉)",
         {
-            "distance modulus": _numeric(modulus),
+            "distance modulus": luminosity_modulus,
             "verified Ks magnitude": usable_ks,
             "Galactic B extinction": galactic_b_extinction,
             "internal B attenuation": _numeric(attenuation),
         },
         lambda: ks_luminosity.log_ks_luminosity(
-            _required(usable_ks), _required(_numeric(modulus)),
+            _required(usable_ks), _required(luminosity_modulus),
             _required(galactic_b_extinction), _required(_numeric(attenuation))
         ),
         "LVGDB Ks luminosity",
@@ -154,4 +158,4 @@ def calculate(
                                   "Fewer than five validated neighbors")
                 ),
             ]
-    return [modulus, color, attenuation, estimated_ks, log_lk, *tidal]
+    return [color, attenuation, estimated_ks, log_lk, *tidal]

@@ -13,17 +13,23 @@ def by_key(**kwargs):
 
 def test_missing_values_are_not_zero() -> None:
     rows = by_key(distance_mpc=None)
-    assert len(rows) == 8
+    assert len(rows) == 7
     assert all(row.value is None for row in rows.values())
     assert rows["a_b_internal"].status == "missing_inputs"
     assert rows["theta1"].status == "not_calculated"
 
 
-def test_adopted_distance_modulus() -> None:
+def test_distance_modulus_not_listed_as_derived() -> None:
     rows = by_key(distance_mpc=10.0)
-    assert rows["mu"].value == pytest.approx(30)
-    assert rows["mu"].status == "available"
+    assert "mu" not in rows
+    assert "dist" not in rows
     assert rows["log_lk"].value is None
+
+
+def test_source_modulus_not_reported_as_derived() -> None:
+    rows = by_key(distance_mpc=10.0, distance_modulus=30.0)
+    assert "mu" not in rows
+    assert "dist" not in rows
 
 
 def test_complete_calibrated_photometry() -> None:
@@ -43,10 +49,10 @@ def test_missing_w50_does_not_imply_zero_attenuation() -> None:
     assert rows["ks_est"].value is None
 
 
-def test_invalid_distance_is_reported() -> None:
+def test_invalid_distance_does_not_create_calculated_modulus() -> None:
     rows = by_key(distance_mpc=0)
-    assert rows["mu"].value is None
-    assert rows["mu"].status == "invalid_input"
+    assert "mu" not in rows
+    assert rows["log_lk"].value is None
 
 
 def test_neighbor_completeness_guard() -> None:
@@ -76,9 +82,9 @@ def test_object_response_does_not_guess_science_inputs() -> None:
         response = domain_objects.get_object(None, 1)
     assert response is not None
     derived = {item.key: item for item in response.derived}
-    assert derived["mu"].value == pytest.approx(30)
+    assert "mu" not in derived
     assert derived["a_b_internal"].value is None
     assert derived["ks_est"].value is None
     payload = response.model_dump(by_alias=True, exclude_none=True)
-    assert payload["derived"][0]["key"] == "mu"
-    assert "value" not in payload["derived"][1]
+    assert payload["derived"][0]["key"] == "b_minus_ks_0"
+    assert "value" not in payload["derived"][0]
