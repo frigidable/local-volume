@@ -46,10 +46,32 @@ type ObjectsListResponse = {
   };
 };
 
+export type CalculatedParameter = {
+  key: string;
+  label: string;
+  unit: string | null;
+  method: string;
+  value?: number | string | null;
+  status: "available" | "missing_inputs" | "invalid_input" | "not_calculated";
+  reason?: string | null;
+};
+
 export type ObjectGetResponse = {
   data: CatalogObjectDetail;
   schema: Record<string, ColumnMeta>;
+  derived: CalculatedParameter[];
 };
+
+export function formatCalculatedValue(
+  value: number | string | null | undefined,
+): string {
+  if (typeof value === "number") {
+    return Number.isFinite(value)
+      ? String(Number(value.toPrecision(5)))
+      : "—";
+  }
+  return typeof value === "string" ? value : "—";
+}
 
 const TABLE_EXCLUDED = new Set(["name", "names"]);
 

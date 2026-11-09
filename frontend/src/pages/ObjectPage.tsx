@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
   fetchObject,
+  formatCalculatedValue,
   parameterRows,
+  type CalculatedParameter,
   type CatalogObjectDetail,
   type ColumnMeta,
 } from "../api/objects.ts";
@@ -14,6 +16,7 @@ export function ObjectPage() {
   const pgc = Number(pgcParam);
   const [data, setData] = useState<CatalogObjectDetail | null>(null);
   const [schema, setSchema] = useState<Record<string, ColumnMeta> | null>(null);
+  const [derived, setDerived] = useState<CalculatedParameter[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -21,6 +24,7 @@ export function ObjectPage() {
       setError("Object not found");
       setData(null);
       setSchema(null);
+      setDerived([]);
       return;
     }
 
@@ -32,12 +36,14 @@ export function ObjectPage() {
         if (!cancelled) {
           setData(response.data);
           setSchema(response.schema);
+          setDerived(response.derived ?? []);
           setError(null);
         }
       } catch (loadError) {
         if (!cancelled) {
           setData(null);
           setSchema(null);
+          setDerived([]);
           setError(
             loadError instanceof Error
               ? loadError.message
@@ -142,6 +148,40 @@ export function ObjectPage() {
                     </th>
                     <td className="param-unit">{row.unit ?? "—"}</td>
                     <td className="param-value">{row.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+          <section className="object-derived" aria-label="Calculated parameters">
+            <h3 className="derived-heading">Calculated Parameters</h3>
+            <p className="derived-note">
+              Results require validated inputs. A dash means unavailable,
+              not zero. Hover over a value for the calculation status.
+            </p>
+            <table className="params-table">
+              <thead>
+                <tr>
+                  <th scope="col">Parameter</th>
+                  <th scope="col">Unit</th>
+                  <th scope="col">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {derived.map((parameter) => (
+                  <tr key={parameter.key}>
+                    <th scope="row">
+                      <span className="param-name" title={parameter.method}>
+                        {parameter.label}
+                      </span>
+                    </th>
+                    <td className="param-unit">{parameter.unit ?? "—"}</td>
+                    <td
+                      className="param-value"
+                      title={parameter.reason ?? parameter.method}
+                    >
+                      {formatCalculatedValue(parameter.value)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

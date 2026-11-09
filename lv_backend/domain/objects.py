@@ -1,4 +1,5 @@
 from lv_backend.data import objects as data_objects
+from lv_backend.domain import derived_parameters
 from lv_backend.data.storage import Storage
 from lv_backend.presentation import schemas
 
@@ -48,4 +49,18 @@ def get_object(storage: Storage, pgc: int) -> schemas.ObjectGetResponse | None:
             names=row["names"],
         ),
         schema=column_schema,
+        derived=[
+            schemas.CalculatedParameter(
+                key=item.key,
+                label=item.label,
+                unit=item.unit,
+                method=item.method,
+                value=item.value,
+                status=item.status,
+                reason=item.reason,
+            )
+            for item in derived_parameters.calculate(
+                distance_mpc=row["dist"], b_magnitude=row["bt"]
+            )
+        ],
     )

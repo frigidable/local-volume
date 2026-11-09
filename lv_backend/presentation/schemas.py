@@ -1,3 +1,5 @@
+from typing import Literal
+
 import pydantic
 
 
@@ -46,8 +48,19 @@ class ObjectsListResponse(pydantic.BaseModel):
     schema_: dict[str, ColumnMeta] = pydantic.Field(alias="schema")
 
 
+class CalculatedParameter(pydantic.BaseModel):
+    key: str
+    label: str
+    unit: str | None
+    method: str
+    value: float | str | None
+    status: Literal["available", "missing_inputs", "invalid_input", "not_calculated"]
+    reason: str | None
+
+
 class ObjectGetResponse(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(populate_by_name=True)
 
     data: ObjectDetail
     schema_: dict[str, ColumnMeta] = pydantic.Field(alias="schema")
+    derived: list[CalculatedParameter] = pydantic.Field(default_factory=list)
